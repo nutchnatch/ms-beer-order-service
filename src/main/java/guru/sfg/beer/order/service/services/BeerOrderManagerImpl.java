@@ -217,7 +217,7 @@ public class BeerOrderManagerImpl implements BeerOrderManager {
         return beerOrderRepository.save(beerOrder);
     }
 
-    private void sendBeerOrderEvent(BeerOrder beerOrder, BeerOrderEventEnum  eventEnum) {
+    private void  sendBeerOrderEvent(BeerOrder beerOrder, BeerOrderEventEnum  eventEnum) {
         StateMachine<BeerOrderStatusEnum, BeerOrderEventEnum> sm = build(beerOrder);
         Message msg = MessageBuilder.withPayload(eventEnum)
                 .setHeader(ORDER_ID_HEADER, beerOrder.getId().toString())
@@ -242,6 +242,12 @@ public class BeerOrderManagerImpl implements BeerOrderManager {
     @Override
     public void processValidationResult(UUID beerOrderId, Boolean isValid) {
 
+        final BeerOrder beerOrder = beerOrderRepository.getOne(beerOrderId);
+        if(isValid) {
+            sendBeerOrderEvent(beerOrder, BeerOrderEventEnum.VALIDATION_PASSED);
+        } else {
+            sendBeerOrderEvent(beerOrder, BeerOrderEventEnum.VALIDATE_ORDER);
+        }
     }
 
     @Override
