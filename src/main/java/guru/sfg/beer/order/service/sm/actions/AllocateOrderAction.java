@@ -21,6 +21,30 @@ import java.util.UUID;
 /**
  * Created by jt on 12/2/19.
  */
+//@Slf4j
+//@Component
+//@RequiredArgsConstructor
+//public class AllocateOrderAction implements Action<BeerOrderStatusEnum, BeerOrderEventEnum> {
+//
+//    private final JmsTemplate jmsTemplate;
+//    private final BeerOrderRepository beerOrderRepository;
+//    private final BeerOrderMapper beerOrderMapper;
+//
+//    @Override
+//    public void execute(StateContext<BeerOrderStatusEnum, BeerOrderEventEnum> context) {
+//        String beerOrderId = (String) context.getMessage().getHeaders().get(BeerOrderManagerImpl.ORDER_ID_HEADER);
+//        Optional<BeerOrder> beerOrderOptional = beerOrderRepository.findById(UUID.fromString(beerOrderId));
+//
+//        beerOrderOptional.ifPresentOrElse(beerOrder -> {
+//                    jmsTemplate.convertAndSend(JmsConfig.ALLOCATE_ORDER_QUEUE,
+//                            AllocateOrderRequest.builder()
+//                            .beerOrderDto(beerOrderMapper.beerOrderToDto(beerOrder))
+//                            .build());
+//                    log.debug("Sent Allocation Request for order id: " + beerOrderId);
+//                }, () -> log.error("Beer Order Not Found!"));
+//    }
+//}
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -31,16 +55,17 @@ public class AllocateOrderAction implements Action<BeerOrderStatusEnum, BeerOrde
     private final BeerOrderMapper beerOrderMapper;
 
     @Override
-    public void execute(StateContext<BeerOrderStatusEnum, BeerOrderEventEnum> context) {
-        String beerOrderId = (String) context.getMessage().getHeaders().get(BeerOrderManagerImpl.ORDER_ID_HEADER);
+    public void execute(StateContext<BeerOrderStatusEnum, BeerOrderEventEnum> stateContext) {
+
+        final String beerOrderId = (String)stateContext.getMessage().getHeaders().get(BeerOrderManagerImpl.ORDER_ID_HEADER);
         Optional<BeerOrder> beerOrderOptional = beerOrderRepository.findById(UUID.fromString(beerOrderId));
 
         beerOrderOptional.ifPresentOrElse(beerOrder -> {
-                    jmsTemplate.convertAndSend(JmsConfig.ALLOCATE_ORDER_QUEUE,
-                            AllocateOrderRequest.builder()
-                            .beerOrderDto(beerOrderMapper.beerOrderToDto(beerOrder))
-                            .build());
-                    log.debug("Sent Allocation Request for order id: " + beerOrderId);
-                }, () -> log.error("Beer Order Not Found!"));
+            jmsTemplate.convertAndSend(JmsConfig.ALLOCATE_ORDER_QUEUE,
+                    AllocateOrderRequest.builder()
+                    .beerOrderDto(beerOrderMapper.beerOrderToDto(beerOrder))
+                    .build());
+            log.debug("Sent Allocation Request for order id: \" + beerOrderId");
+        }, () -> log.error("Beer Order Not Found!"));
     }
 }
