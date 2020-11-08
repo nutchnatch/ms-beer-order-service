@@ -196,6 +196,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 //    }
 //}
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 
@@ -254,17 +255,51 @@ public class BeerOrderManagerImpl implements BeerOrderManager {
     }
 
     @Override
-    public void beerOrderAllocationPassed(BeerOrderDto beerOrder) {
+    public void beerOrderAllocationPassed(BeerOrderDto beerOrderDto) {
+        Optional<BeerOrder> beerOrderOptional = beerOrderRepository.findById(beerOrderDto.getId());
 
+        beerOrderOptional.ifPresentOrElse(beerOrder -> {
+            sendBeerOrderEvent(beerOrder, BeerOrderEventEnum.ALLOCATION_SUCCESS);
+            awaitForStatus(beerOrder.getId(), BeerOrderStatusEnum.ALLOCATED);
+            updateAllocatedQty(beerOrderDto);
+        }, () -> log.error("Order Id Not Found: " + beerOrderDto.getId() ));
     }
 
     @Override
-    public void beerOrderAllocationPendingInventory(BeerOrderDto beerOrder) {
+    public void beerOrderAllocationPendingInventory(BeerOrderDto beerOrderDto) {
+        Optional<BeerOrder> beerOrderOptional = beerOrderRepository.findById(beerOrderDto.getId());
+
+        beerOrderOptional.ifPresentOrElse(beerOrder -> {
+            sendBeerOrderEvent(beerOrder, BeerOrderEventEnum.ALLOCATION_NO_INVENTORY);
+            awaitForStatus(beerOrder.getId(), BeerOrderStatusEnum.PENDING_INVENTORY);
+            updateAllocatedQty(beerOrderDto);
+        }, () -> log.error("Order Id Not Found: " + beerOrderDto.getId() ));
 
     }
 
+    private void updateAllocatedQty(BeerOrderDto beerOrderDto) {
+        Optional<BeerOrder> allocatedOrderOptional = beerOrderRepository.findById(beerOrderDto.getId());
+
+        allocatedOrderOptional.ifPresentOrElse(allocatedOrder -> {
+            allocatedOrder.getBeerOrderLines().forEach(beerOrderLine -> {
+                beerOrderDto.getBeerOrderLines().forEach(beerOrderLineDto -> {
+                    if(beerOrderLine.getId() .equals(beerOrderLineDto.getId())){
+                        beerOrderLine.setQuantityAllocated(beerOrderLineDto.getQuantityAllocated());
+                    }
+                });
+            });
+
+            beerOrderRepository.saveAndFlush(allocatedOrder);
+        }, () -> log.error("Order Not Found. Id: " + beerOrderDto.getId()));
+    }
+
     @Override
-    public void beerOrderAllocationFailed(BeerOrderDto beerOrder) {
+    public void beerOrderAllocationFailed(BeerOrderDto beerOrderDto) {
+        Optional<BeerOrder> beerOrderOptional = beerOrderRepository.findById(beerOrderDto.getId());
+
+        beerOrderOptional.ifPresentOrElse(beerOrder -> {
+            sendBeerOrderEvent(beerOrder, BeerOrderEventEnum.ALLOCATION_FAILED);
+        }, () -> log.error("Order Not Found. Id: " + beerOrderDto.getId()) );
 
     }
 
@@ -276,5 +311,38 @@ public class BeerOrderManagerImpl implements BeerOrderManager {
     @Override
     public void cancelOrder(UUID id) {
 
+    }
+
+    private void awaitForStatus(UUID beerOrderId, BeerOrderStatusEnum statusEnum) {
+
+        AtomicBoolean found = new AtomicBoolean(false);
+        AtomicInteger loopCount = new AtomicInteger(0);
+
+        while (!found.get()) {
+            if (loopCount.incrementAndGet() > 10) {
+                found.set(true);
+                log.debug("Loop Retries exceeded");
+            }
+
+            beerOrderRepository.findById(beerOrderId).ifPresentOrElse(beerOrder -> {
+                if (beerOrder.getOrderStatus().equals(statusEnum)) {
+                    found.set(true);
+                    log.debug("Order Found");
+                } else {
+                    log.debug("Order Status Not Equal. Expected: " + statusEnum.name() + " Found: " + beerOrder.getOrderStatus().name());
+                }
+            }, () -> {
+                log.debug("Order Id Not Found");
+            });
+
+            if (!found.get()) {
+                try {
+                    log.debug("Sleeping for retry");
+                    Thread.sleep(100);
+                } catch (Exception e) {
+                    // do nothing
+                }
+            }
+        }
     }
 }
