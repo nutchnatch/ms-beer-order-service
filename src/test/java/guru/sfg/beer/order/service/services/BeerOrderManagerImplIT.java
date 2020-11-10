@@ -2,11 +2,8 @@ package guru.sfg.beer.order.service.services;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.jenspiegsa.wiremockextension.ManagedWireMockServer;
 import com.github.jenspiegsa.wiremockextension.WireMockExtension;
 import com.github.tomakehurst.wiremock.WireMockServer;
-import com.netflix.discovery.converters.Auto;
-import groovy.transform.AutoImplement;
 import guru.sfg.beer.order.service.config.JmsConfig;
 import guru.sfg.beer.order.service.domain.BeerOrder;
 import guru.sfg.beer.order.service.domain.BeerOrderLine;
@@ -16,8 +13,6 @@ import guru.sfg.beer.order.service.repositories.BeerOrderRepository;
 import guru.sfg.beer.order.service.repositories.CustomerRepository;
 import guru.sfg.beer.order.service.services.beer.BeerServiceImpl;
 import guru.sfg.brewery.model.BeerDto;
-import guru.sfg.brewery.model.BeerOrderPagedList;
-import guru.sfg.brewery.model.BeerPagedList;
 import guru.sfg.brewery.model.events.AllocationFailureEvent;
 import guru.sfg.brewery.model.events.DeallocateOrderRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,7 +24,9 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.jms.core.JmsTemplate;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 
 import static com.github.jenspiegsa.wiremockextension.ManagedWireMockServer.with;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
@@ -39,7 +36,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.jgroups.util.Util.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Created by jt on 2/14/20.
