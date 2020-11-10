@@ -13,23 +13,6 @@ import java.util.UUID;
 /**
  * Created by jt on 12/2/19.
  */
-//@Slf4j
-//@RequiredArgsConstructor
-//@Component
-//public class ValidationResultListener {
-//
-//    private final BeerOrderManager beerOrderManager;
-//
-//    @JmsListener(destination = JmsConfig.VALIDATE_ORDER_RESPONSE_QUEUE)
-//    public void listen(ValidateOrderResult result){
-//        final UUID beerOrderId = result.getOrderId();
-//
-//        log.debug("Validation Result for Order Id: " + beerOrderId);
-//
-//        beerOrderManager.processValidationResult(beerOrderId, result.getIsValid());
-//    }
-//}
-
 @Slf4j
 @RequiredArgsConstructor
 @Component
@@ -38,10 +21,10 @@ public class ValidationResultListener {
     private final BeerOrderManager beerOrderManager;
 
     @JmsListener(destination = JmsConfig.VALIDATE_ORDER_RESPONSE_QUEUE)
-    public void listen(ValidateOrderResult result) {
-
+    public void listen(ValidateOrderResult result){
         final UUID beerOrderId = result.getOrderId();
-        log.debug("Validation result for order id: " + beerOrderId);
+
+        log.debug("Validation Result for Order Id: " + beerOrderId);
 
         beerOrderManager.processValidationResult(beerOrderId, result.getIsValid());
     }
