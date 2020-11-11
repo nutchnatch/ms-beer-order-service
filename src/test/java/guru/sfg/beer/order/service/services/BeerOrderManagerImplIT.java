@@ -170,17 +170,17 @@ public class BeerOrderManagerImplIT {
                 .willReturn(okJson(objectMapper.writeValueAsString(beerDto))));
 
         BeerOrder beerOrder = createBeerOrder();
-        beerOrder.setCustomerRef("fail-validation");
+        beerOrder.setCustomerRef("fail-allocation");
 
         BeerOrder savedBeerOrder = beerOrderManager.newBeerOrder(beerOrder);
 
         await().untilAsserted(() -> {
             BeerOrder foundOrder = beerOrderRepository.findById(beerOrder.getId()).get();
-
-            assertEquals(BeerOrderStatusEnum.VALIDATION_EXCEPTION, foundOrder.getOrderStatus());
+            assertEquals(BeerOrderStatusEnum.ALLOCATION_EXCEPTION, foundOrder.getOrderStatus());
         });
 
-        final AllocationFailureEvent allocationFailureEvent  = (AllocationFailureEvent) jmsTemplate.receiveAndConvert(JmsConfig.ALLOCATE_FAILURE_QUEUE);
+        AllocationFailureEvent allocationFailureEvent = (AllocationFailureEvent) jmsTemplate.receiveAndConvert(JmsConfig.ALLOCATE_FAILURE_QUEUE);
+
         assertNotNull(allocationFailureEvent);
         assertThat(allocationFailureEvent.getOrderId()).isEqualTo(savedBeerOrder.getId());
     }
