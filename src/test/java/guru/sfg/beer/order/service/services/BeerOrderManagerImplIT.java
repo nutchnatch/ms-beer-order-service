@@ -179,6 +179,10 @@ public class BeerOrderManagerImplIT {
 
             assertEquals(BeerOrderStatusEnum.VALIDATION_EXCEPTION, foundOrder.getOrderStatus());
         });
+
+        final AllocationFailureEvent allocationFailureEvent  = (AllocationFailureEvent) jmsTemplate.receiveAndConvert(JmsConfig.ALLOCATE_FAILURE_QUEUE);
+        assertNotNull(allocationFailureEvent);
+        assertThat(allocationFailureEvent.getOrderId()).isEqualTo(savedBeerOrder.getId());
     }
 
     @Test
